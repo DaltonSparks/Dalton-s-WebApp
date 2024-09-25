@@ -1,0 +1,45 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<nav class="navbar">
+    <div class="navbar-content">
+        <a href="{% url 'home' %}" class="home-button">DaltonSparks.com</a>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link">Apps</a>
+                <ul class="dropdown">
+                    <li><a href="{% url 'clock' %}">Clock</a></li>
+                </ul>
+            </li>
+            {% comment %}
+            {% if is_clock_app %}
+            <li class="nav-item">
+                <a href="#" class="nav-link">Settings</a>
+                <ul class="dropdown">
+                    <li><a href="#" id="toggle-date">Show Date</a></li>
+                    <li><a href="#" id="toggle-time">Show Time</a></li>
+                </ul>
+            </li>
+            {% endif %}
+            {% endcomment %}
+        </ul>
+        <button id="dark-mode-toggle" class="dark-mode-toggle">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+</nav>
+<script>
+    document.getElementById('dark-mode-toggle').addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        
+        document.dispatchEvent(new CustomEvent('darkModeToggled'));
+        console.log('Dark mode toggled, event dispatched');
+    });
+
+    // Check for saved dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+        document.dispatchEvent(new CustomEvent('darkModeToggled'));
+    }
+</script>

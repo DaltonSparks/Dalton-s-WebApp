@@ -1,0 +1,8 @@
+/* myproject/static/css/style.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    color: #333;
+    margin: 0;
+    padding-top: 60px; /* Adjust this value based on your navbar height */
+}

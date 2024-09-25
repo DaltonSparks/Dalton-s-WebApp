@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/clock.css' %}">
+{% endblock %}
+<!-- myproject/templates/time_and_temp.html -->
+{% block content %}
+    {% include "navbar.html" %}
+
+    <div id="clock-container" class="clock-container">
+        <div id="clock"></div>
+        <div class="resizer resizer-n"></div>
+        <div class="resizer resizer-e"></div>
+        <div class="resizer resizer-s"></div>
+        <div class="resizer resizer-w"></div>
+        <div class="resizer resizer-ne"></div>
+        <div class="resizer resizer-se"></div>
+        <div class="resizer resizer-sw"></div>
+        <div class="resizer resizer-nw"></div>
+    </div>
+
+
+
+    <div id="timezone-control">
+
+        <div id="current-timezone"></div>
+
+        <div id="timezone-menu" style="display: none;">
+            <input type="text" id="timezone-search" list="timezone-suggestions" placeholder="Search for a timezone">
+            <datalist id="timezone-suggestions"></datalist>
+        </div>
+        
+        <button id="show-timezone-btn">Set Time Zone</button>
+    </div>
+
+    <script>
+        const clock = document.getElementById('clock');
+        const timezoneSearch = document.getElementById('timezone-search');
+        const timezoneSuggestions = document.getElementById('timezone-suggestions');
+        const showTimezoneBtn = document.getElementById('show-timezone-btn');
+        const timezoneMenu = document.getElementById('timezone-menu');
+        const currentTimezoneDisplay = document.getElementById('current-timezone');
+        let selectedTimezone = 'America/Chicago';
+        let timezones = [];
+
+        function updateClock() {
+            const now = new Date();
+            clock.textContent = now.toLocaleTimeString('en-US', { timeZone: selectedTimezone });
+            clock.style.color = document.body.classList.contains('dark-mode');
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock(); // Initial call to set the clock immediately
+
+        // Function to update the current timezone display
+        function updateCurrentTimezoneDisplay() {
+            currentTimezoneDisplay.textContent = `Current Timezone: ${selectedTimezone}`;
+        }
+
+        // Function to populate timezone options
+        function populateTimezones() {
+            timezones = Intl.supportedValuesOf('timeZone');
+            updateCurrentTimezoneDisplay();
+        }
+
+        // Function to filter and display timezone suggestions
+        function filterTimezones(search) {
+            const filteredTimezones = timezones.filter(tz => 
+                tz.toLowerCase().includes(search.toLowerCase())
+            );
+            
+            timezoneSuggestions.innerHTML = '';
+            filteredTimezones.forEach(tz => {
+                const option = document.createElement('option');
+                option.value = tz;
+                timezoneSuggestions.appendChild(option);
+            });
+        }
+
+        // Populate timezones
+        populateTimezones();
+
+        // Event listener for timezone search
+        timezoneSearch.addEventListener('input', (e) => {
+            filterTimezones(e.target.value);
+        });
+
+        // Event listener for timezone selection
+        timezoneSearch.addEventListener('change', (e) => {
+            selectedTimezone = e.target.value;
+            updateClock();
+            updateCurrentTimezoneDisplay();
+            timezoneMenu.style.display = 'none';
+            showTimezoneBtn.style.display = 'block';
+        });
+
+        // Event listener for show/hide timezone button
+        showTimezoneBtn.addEventListener('click', () => {
+            if (timezoneMenu.style.display === 'none') {
+                timezoneMenu.style.display = 'block';
+                timezoneSearch.value = '';
+                timezoneSearch.focus();
+            } else {
+                timezoneMenu.style.display = 'none';
+            }
+        });
+
+        // Add dragging and resizing functionality
+        const container = document.getElementById('clock-container');
+        const clockElement = document.getElementById('clock');
+        let isDragging = false;
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight, startLeft, startTop;
+        let currentResizer;
+
+        // Mouse down event listener for dragging and resizing
+        container.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('resizer')) {
+                isResizing = true;
+                currentResizer = e.target;
+            } else {
+                isDragging = true;
+            }
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = container.offsetWidth;
+            startHeight = container.offsetHeight;
+            startLeft = container.offsetLeft;
+            startTop = container.offsetTop;
+            e.preventDefault();
+        });
+
+        // Mouse move event listener for dragging and resizing
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                // Calculate the new position
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                container.style.left = `${startLeft + dx}px`;
+                container.style.top = `${startTop + dy}px`;
+            } else if (isResizing) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                const resizeThreshold = 5; // pixels
+
+                if (Math.abs(dx) > resizeThreshold || Math.abs(dy) > resizeThreshold) {
+                    let newWidth = startWidth;
+                    let newHeight = startHeight;
+                    let newLeft = startLeft;
+                    let newTop = startTop;
+
+                    // Determine which resizer is being used and adjust dimensions accordingly
+                    if (currentResizer.classList.contains('resizer-n') || currentResizer.classList.contains('resizer-nw') || currentResizer.classList.contains('resizer-ne')) {
+                        newHeight = startHeight - dy;
+                        newTop = startTop + dy;
+                    }
+                    if (currentResizer.classList.contains('resizer-e') || currentResizer.classList.contains('resizer-ne') || currentResizer.classList.contains('resizer-se')) {
+                        newWidth = startWidth + dx;
+                    }
+                    if (currentResizer.classList.contains('resizer-s') || currentResizer.classList.contains('resizer-sw') || currentResizer.classList.contains('resizer-se')) {
+                        newHeight = startHeight + dy;
+                    }
+                    if (currentResizer.classList.contains('resizer-w') || currentResizer.classList.contains('resizer-nw') || currentResizer.classList.contains('resizer-sw')) {
+                        newWidth = startWidth - dx;
+                        newLeft = startLeft + dx;
+                    }
+
+                    // Apply size constraints and update container style
+                    if (newWidth > 200 && newHeight > 100 && newLeft >= 0 && newTop >= 0) {
+                        container.style.width = `${newWidth}px`;
+                        container.style.height = `${newHeight}px`;
+                        container.style.left = `${newLeft}px`;
+                        container.style.top = `${newTop}px`;
+
+                        // Adjust font size based on container dimensions
+                        const newFontSize = Math.min(newWidth / 5, newHeight / 2);
+                        clockElement.style.fontSize = `${newFontSize}px`;
+                    }
+                }
+            }
+        });
+
+        // Mouse up event listener to stop dragging or resizing
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            isResizing = false;
+        });
+
+        // Update the clock size when the window is resized
+        window.addEventListener('resize', () => {
+            const newWidth = container.offsetWidth;
+            const newHeight = container.offsetHeight;
+            const newFontSize = Math.min(newWidth / 5, newHeight / 2);
+            clockElement.style.fontSize = `${newFontSize}px`;
+        });
+
+        // Listen for dark mode changes
+        document.addEventListener('darkModeToggled', function() {
+            updateClock();
+        });
+
+        // Check for saved dark mode preference on page load
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            updateClock();
+        }
+
+        // Update clock function
+        function updateClock() {
+            const now = new Date();
+            clock.textContent = now.toLocaleTimeString('en-US', { timeZone: selectedTimezone });
+            //clock.style.color = document.body.classList.contains('dark-mode') ? '#000000' : '#00000';
+            clock.style.color = ''; // Remove inline style
+        }
+    </script>
+{% endblock %}
+
+
